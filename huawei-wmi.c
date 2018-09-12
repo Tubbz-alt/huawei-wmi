@@ -103,6 +103,32 @@ static const struct dmi_system_id huawei_whitelist[] __initconst = {
     {}
 };
 
+static int huawei_mic_led_enable(bool v)
+{
+  char result_buffer[256];
+  acpi_status result;
+  union acpi_object params[1];
+  struct acpi_object_list input = {
+    .count = 1,
+    .pointer = params,
+  };
+  struct acpi_buffer buf = {ACPI_ALLOCATE_BUFFER, NULL};
+
+  params[0].type = ACPI_TYPE_INTEGER;
+  if (v) {
+    params[0].integer.value = 0x0000000000010B04;
+  } else {
+    params[0].integer.value = 0x0000000000000B04;
+  }
+  result = acpi_evaluate_object(0, "\\SMLS", &input, &buf);
+  if (ACPI_FAILURE(result)) {
+    snprintf(result_buffer, sizeof(result_buffer), "Error: %s", acpi_format_exception(result));
+    pr_info("CALL SMLS failed: %s\n", result_buffer);
+    return -1;
+  }
+  return 0;
+}
+
 static void huawei_wmi_notify(u32 value, void *context)
 {
   struct acpi_buffer response = { ACPI_ALLOCATE_BUFFER, NULL };
@@ -110,6 +136,7 @@ static void huawei_wmi_notify(u32 value, void *context)
   acpi_status status;
   int code;
 
+  static bool mic_led_status = 0;
   status = wmi_get_event_data(value, &response);
   if (status != AE_OK) {
     pr_err("bad event status 0x%x\n", status);
@@ -120,18 +147,13 @@ static void huawei_wmi_notify(u32 value, void *context)
 
   if (obj && obj->type == ACPI_TYPE_INTEGER) {
     code = obj->integer.value;
-    /* switch (code) { */
-    /* case 0x287: */
-    /*   pr_info("RECEVED KEY 0x%x(KEY_MICMUTE)pressed\n", code); */
-    /* case 0x289: */
-    /*   pr_info("RECEVED KEY 0x%x(WIFI TOGGLE)pressed\n", code); */
-    /* case 0x28a: */
-    /*   pr_info("RECEVED KEY 0x%x(Huawei Manager)pressed\n", code); */
-    /*   break; */
-    /* default: */
-    /*   pr_info("RECEVED Unknown KEY 0x%x pressed\n", code); */
-    /* } */
-    sparse_keymap_report_event(huawei_wmi_input_dev, code, 1, true);
+    switch (code) {
+    case 0x287:
+      mic_led_status = !mic_led_status;
+      huawei_mic_led_enable(mic_led_status);
+    default:
+      sparse_keymap_report_event(huawei_wmi_input_dev, code, 1, true);
+    }
   } else {
     pr_info("Received unknown events %p pressed\n", obj);
   }
