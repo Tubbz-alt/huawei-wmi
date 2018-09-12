@@ -1,0 +1,15 @@
+Source: huawei-wmi-dkms
+Section: devel
+Priority: optional
+Maintainer: unknown <zs@deepin.com>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.8
+Homepage: http://www.deepin.com
+#Vcs-Git: https://anonscm.debian.org/collab-maint/huawei-wmi.git
+#Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/huawei-wmi.git
+
+Package: huawei-wmi-dkms
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: <insert up to 60 chars description>
+ <insert long description, indented with spaces>

@@ -1,0 +1,3 @@
+Makefile /usr/src/huawei-wmi-1.0
+huawei-wmi.c /usr/src/huawei-wmi-1.0
+debian/huawei-wmi-dkms.dkms /usr/src/huawei-wmi-1.0

@@ -1,0 +1,5 @@
+huawei-wmi-dkms (1.0) unstable; urgency=medium
+
+  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+
+ -- unknown <zs@deepin.com>  Mon, 09 Jul 2018 11:40:05 +0800
