@@ -29,6 +29,7 @@
 #include <linux/input/sparse-keymap.h>
 #include <linux/dmi.h>
 #include <linux/acpi.h>
+#include <linux/leds.h>
 
 #define	HUAWEI_WMI_FILE	"huawei-wmi"
 
@@ -53,6 +54,7 @@ static const struct key_entry huawei_wmi_keymap[] = {
 static struct input_dev *huawei_wmi_input_dev = 0;
 
 static void huawei_wmi_notify(u32 value, void *context);
+static int huawei_mic_led_enable(bool v);
 
 static int huawei_wmi_input_setup(void)
 {
@@ -103,6 +105,26 @@ static const struct dmi_system_id huawei_whitelist[] __initconst = {
     {}
 };
 
+
+
+static void huawei_mic_led_set(struct led_classdev *led_cdev,
+			 enum led_brightness value)
+{
+  if (value == LED_OFF) {
+    huawei_mic_led_enable(false);
+  } else {
+    huawei_mic_led_enable(true);
+  }
+}
+
+static struct led_classdev mic_led = {
+	.name		= "huawei::mic",
+	.brightness	= LED_OFF,
+	.max_brightness = 1,
+	.brightness_set = huawei_mic_led_set,
+	.flags		= LED_CORE_SUSPENDRESUME,
+};
+
 static int huawei_mic_led_enable(bool v)
 {
   char result_buffer[256];
@@ -136,7 +158,6 @@ static void huawei_wmi_notify(u32 value, void *context)
   acpi_status status;
   int code;
 
-  static bool mic_led_status = 0;
   status = wmi_get_event_data(value, &response);
   if (status != AE_OK) {
     pr_err("bad event status 0x%x\n", status);
@@ -147,13 +168,7 @@ static void huawei_wmi_notify(u32 value, void *context)
 
   if (obj && obj->type == ACPI_TYPE_INTEGER) {
     code = obj->integer.value;
-    switch (code) {
-    case 0x287:
-      mic_led_status = !mic_led_status;
-      huawei_mic_led_enable(mic_led_status);
-    default:
-      sparse_keymap_report_event(huawei_wmi_input_dev, code, 1, true);
-    }
+    sparse_keymap_report_event(huawei_wmi_input_dev, code, 1, true);
   } else {
     pr_info("Received unknown events %p pressed\n", obj);
   }
@@ -172,6 +187,9 @@ static int __init huawei_wmi_init(void)
     return -ENODEV;
   }
 
+  if (led_classdev_register(NULL, &mic_led)) {
+    pr_warning("mic led register failed\n");
+  }
   return huawei_wmi_input_setup();
 }
 
@@ -180,6 +198,7 @@ static void __exit huawei_wmi_exit(void)
   wmi_remove_notify_handler(HUAWEI_WMI_EVENT_GUID);
   if (huawei_wmi_input_dev)
     input_unregister_device(huawei_wmi_input_dev);
+  led_classdev_unregister(&mic_led);
 }
 
 module_init(huawei_wmi_init);
