@@ -125,6 +125,43 @@ static struct led_classdev mic_led = {
 	.flags		= LED_CORE_SUSPENDRESUME,
 };
 
+
+#if 0
+// the methods is guessing from ACPI DSL code, don't rely on this.
+static int huawei_mic_led_status(void)
+{
+  acpi_status result;
+  char result_buffer[256];
+  struct acpi_buffer buf = {ACPI_ALLOCATE_BUFFER, NULL};
+  union acpi_object params[2];
+  struct acpi_object_list input = {
+    .count = 2,
+    .pointer = params,
+  };
+  params[0].type = ACPI_TYPE_INTEGER;
+  params[0].integer.value = 0x1;
+  params[1].type = ACPI_TYPE_INTEGER;
+  params[1].integer.value = 0x4;
+
+  result = acpi_evaluate_object(0, "\\_SB.PCI0.LPCB.EC0.RPIN", &input, &buf);
+  if (ACPI_FAILURE(result)) {
+    snprintf(result_buffer, sizeof(result_buffer), "Error: %s", acpi_format_exception(result));
+    pr_info("get mic led status failed: %s\n", result_buffer);
+    return -1;
+  }
+  if (buf.length == 24) {
+    switch (((unsigned char*)buf.pointer)[8]) {
+    case 170:
+      return 0;
+    case 85:
+      return 1;
+    }
+  }
+  pr_info("can't get mic led status\n");
+  return -1;
+}
+#endif
+
 static int huawei_mic_led_enable(bool v)
 {
   char result_buffer[256];
