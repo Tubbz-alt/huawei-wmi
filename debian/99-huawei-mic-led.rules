@@ -1,0 +1,1 @@
+SUBSYSTEM=="leds" ACTION=="add", RUN="/bin/chmod 0666 /sys/class/leds/huawei::mic/brightness"
